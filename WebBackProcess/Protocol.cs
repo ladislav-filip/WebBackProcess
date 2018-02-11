@@ -83,6 +83,7 @@ namespace WebBackProcess
                 {
                     StopRequest();
                     m_thread.Join();
+                    m_thread = null;
                     Debug.WriteLine("...stopping and disposing Protocol");
                 }                
             }
