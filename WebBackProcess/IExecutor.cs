@@ -2,7 +2,7 @@
 
 namespace WebBackProcess
 {
-    public delegate void AfterExecCallback(string data);
+    public delegate void AfterExecCallback(ExecDTO data);
 
     public interface IExecutor : IDisposable
     {

@@ -6,22 +6,25 @@ using System.Web;
 
 namespace WebBackProcess
 {
-    public class Protocol : IProtocol, IDisposable
+    public class Protocol : IProtocol
     {
         private bool m_stopRequest;
         private readonly DateTime m_created = DateTime.Now;
         private Thread m_thread;
         private readonly ConcurrentQueue<string> m_queue = new ConcurrentQueue<string>();
 
+        /// <summary>
+        /// V rámci requestu pouze jediná instance 
+        /// </summary>
         public static IProtocol Instance
         {
             get
             {
-                var result = HttpContext.Current.Items["Protocol"] as Protocol;
+                var result = HttpContext.Current.Items[typeof(Protocol)] as Protocol;
                 if (result == null)
                 {
                     result = new Protocol();
-                    HttpContext.Current.Items["Protocol"] = result;
+                    HttpContext.Current.Items[typeof(Protocol)] = result;
                 }
                 return result;
             }  
@@ -37,13 +40,14 @@ namespace WebBackProcess
             m_queue.Enqueue(data);
             if (m_thread == null)
             {
+                m_stopRequest = false;
                 m_thread = new Thread(StartWorking);
                 m_thread.Start();
             }
         }
 
         private void StartWorking()
-        {
+        {            
             Debug.WriteLine("...start Protocol thread");
             while (!m_stopRequest)
             {
@@ -51,12 +55,14 @@ namespace WebBackProcess
                 Thread.Sleep(100);
                 //Debug.WriteLine($"...working {m_created:HH:mm:ss tt}");
             }
+            m_thread = null;
+            Debug.WriteLine("...stop Protocol thread");
         }
 
         private void ProcessQueue()
         {
             var data = string.Empty;
-            while (m_queue.TryDequeue(out data))
+            while (!m_stopRequest && m_queue.TryDequeue(out data))
             {
                 Debug.WriteLine($"{data} - /{m_created:HH:mm:ss tt}/");
             }
@@ -82,10 +88,9 @@ namespace WebBackProcess
                 if (m_thread != null)
                 {
                     StopRequest();
-                    m_thread.Join();
-                    m_thread = null;
-                    Debug.WriteLine("...stopping and disposing Protocol");
-                }                
+                    m_thread = null;                    
+                }
+                Debug.WriteLine("...stopping and disposing Protocol");
             }
 
             m_disposed = true;

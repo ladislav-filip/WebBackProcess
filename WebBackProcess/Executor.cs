@@ -6,7 +6,12 @@ using System.Web;
 
 namespace WebBackProcess
 {
-    public class Executor : IExecutor, IDisposable
+    public class ExecDTO
+    {
+        public string Data { get; set; }
+    }
+
+    public class Executor : IExecutor
     {
         private bool m_stopRequest;
         private readonly DateTime m_created = DateTime.Now;
@@ -17,11 +22,11 @@ namespace WebBackProcess
         {
             get
             {
-                var result = HttpContext.Current.Items["Executor"] as Executor;
+                var result = HttpContext.Current.Items[typeof(Executor)] as Executor;
                 if (result == null)
                 {
                     result = new Executor();
-                    HttpContext.Current.Items["Executor"] = result;
+                    HttpContext.Current.Items[typeof(Executor)] = result;
                 }
                 return result;
             }
@@ -37,6 +42,7 @@ namespace WebBackProcess
             m_queue.Enqueue(data);
             if (m_thread == null)
             {
+                m_stopRequest = false;
                 m_thread = new Thread(StartWorking);
                 m_thread.Start();
             }
@@ -53,15 +59,21 @@ namespace WebBackProcess
                 Thread.Sleep(100);
                 //Debug.WriteLine($"...working {m_created:HH:mm:ss tt}");
             }
+            m_thread = null;
+            Debug.WriteLine("...stop Executor thread");
         }
 
         private void ProcessQueue()
         {
             var data = string.Empty;
-            while (m_queue.TryDequeue(out data))
+            while (!m_stopRequest && m_queue.TryDequeue(out data))
             {
                 Debug.WriteLine($"{data} - /{m_created:HH:mm:ss tt}/");
-                AfterExec("hotovo");
+                var dto = new ExecDTO()
+                {
+                    Data = "Hotovo."
+                };
+                AfterExec.Invoke(dto);                
             }
         }
 
@@ -85,10 +97,9 @@ namespace WebBackProcess
                 if (m_thread != null)
                 {
                     StopRequest();
-                    m_thread.Join();
-                    m_thread = null;
-                    Debug.WriteLine("...stopping and disposing Executor");
+                    m_thread = null;                    
                 }
+                Debug.WriteLine("...stopping and disposing Executor");
             }
 
             m_disposed = true;
