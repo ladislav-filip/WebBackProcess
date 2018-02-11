@@ -46,7 +46,7 @@ namespace WebBackProcess
 
         private void StartWorking()
         {
-            Debug.WriteLine("...start Protocol thread");
+            Debug.WriteLine("...start Executor thread");
             while (!m_stopRequest)
             {
                 ProcessQueue();
@@ -87,7 +87,7 @@ namespace WebBackProcess
                     StopRequest();
                     m_thread.Join();
                     m_thread = null;
-                    Debug.WriteLine("...stopping and disposing Protocol");
+                    Debug.WriteLine("...stopping and disposing Executor");
                 }
             }
 
